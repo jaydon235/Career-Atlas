@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Atlas</title>
+<meta name="description" content="Career Atlas — find career paths connected to your degree, certifications, and skills.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #eef1f3;
+    --paper: #e4e9ec;
+    --ink: #16233b;
+    --ink-soft: #3c4a5e;
+    --muted: #6b7a8c;
+    --blue: #1e4d8c;
+    --blue-deep: #10315e;
+    --gold: #a9762c;
+    --line: #ccd4da;
+    --white: #ffffff;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
+  }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Spectral', Georgia, serif; font-weight:500; margin:0; color:var(--ink); }
+  a{ color:var(--blue); }
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible{
+    outline:2px solid var(--blue); outline-offset:2px; border-radius:2px;
+  }
+  .wrap{ max-width:900px; margin:0 auto; padding:0 26px; }
+
+  /* ---------- Header ---------- */
+  header{ border-bottom:1px solid var(--line); background:var(--paper); }
+  .header-inner{ padding:38px 0 30px; }
+  .mark{ display:flex; align-items:baseline; gap:10px; }
+  .mark .glyph{ font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--gold); letter-spacing:0.02em; }
+  header h1{ font-size:30px; }
+  header p.tag{ color:var(--ink-soft); margin-top:8px; max-width:52ch; font-size:15.5px; }
+
+  /* ---------- Legend / controls ---------- */
+  .legend{ padding:34px 0 30px; border-bottom:1px solid var(--line); }
+  .legend-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted);
+    display:block; margin-bottom:8px;
+  }
+  .degree-select{
+    width:100%; max-width:440px;
+    font-family:'IBM Plex Sans', sans-serif; font-size:16px; color:var(--ink);
+    padding:11px 14px; background:var(--white); border:1px solid var(--line);
+    border-radius:2px; appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%), linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 14px) center;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat:no-repeat;
+  }
+  .cert-row{ display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+  .cert-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--ink-soft);
+    border:1px solid var(--line); background:var(--white);
+    padding:6px 12px; cursor:pointer; user-select:none; border-radius:2px;
+  }
+  .cert-chip input{ position:absolute; opacity:0; pointer-events:none; }
+  .cert-chip.active{ background:var(--blue); border-color:var(--blue); color:var(--white); }
+  .match-toggle{
+    display:flex; align-items:center; gap:8px; margin-top:16px;
+    font-size:13.5px; color:var(--ink-soft); cursor:pointer;
+  }
+  .match-toggle input{ accent-color:var(--blue); width:15px; height:15px; }
+
+  /* ---------- Results / Gazetteer ---------- */
+  .results{ padding:36px 0 70px; }
+  .results-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px; flex-wrap:wrap; gap:8px; }
+  .results-count{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--muted); }
+
+  .entry{ border-top:1px solid var(--line); padding:22px 0; display:grid; grid-template-columns:44px 1fr; gap:0 18px; transition:background-color .15s ease; }
+  .entry:hover{ background:rgba(30,77,140,0.035); }
+  .entry:last-child{ border-bottom:1px solid var(--line); }
+  .entry .num{ font-family:'IBM Plex Mono', monospace; color:var(--gold); font-size:13px; padding-top:4px; }
+  .entry h3{ font-size:19px; }
+  .entry .stats{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--blue);
+    margin-top:6px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px;
+  }
+  .entry .stats span.outlook{ color:var(--gold); }
+  .salary-bar{ width:120px; height:5px; background:var(--line); border-radius:3px; position:relative; overflow:hidden; }
+  .salary-bar span{ position:absolute; top:0; bottom:0; background:var(--blue); border-radius:3px; }
+  .entry p.desc{ color:var(--ink-soft); margin:10px 0 0; font-size:14.5px; max-width:64ch; }
+  .entry .meta{ margin-top:10px; font-size:13px; color:var(--muted); }
+  .entry .meta b{ color:var(--ink-soft); font-weight:600; }
+  .badge-match{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color:var(--blue); border:1px solid var(--blue); padding:1px 7px; border-radius:2px; margin-left:8px;
+  }
+
+  .empty-state{
+    padding:50px 0; color:var(--muted); text-align:center; font-size:15px;
+  }
+
+  /* ---------- Sources / footer ---------- */
+  .sources{ border-top:1px solid var(--line); padding:30px 0 50px; background:var(--paper); }
+  .sources h2{ font-size:16px; font-family:'IBM Plex Sans',sans-serif; font-weight:600; margin-bottom:10px; }
+  .sources p{ color:var(--ink-soft); font-size:14px; max-width:64ch; margin:0 0 10px; }
+  .sources ul{ margin:0; padding-left:18px; font-size:14px; color:var(--ink-soft); }
+  .sources li{ margin-bottom:4px; }
+
+  @media (max-width:600px){
+    .entry{ grid-template-columns:1fr; }
+    .entry .num{ padding-top:0; margin-bottom:4px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <div class="mark"><span class="glyph">— an exploration tool —</span></div>
+    <h1>Career Atlas</h1>
+    <p class="tag">Pick a degree — current or intended — and see where it can take you: real career titles, general salary ranges, job outlook, and the certifications that strengthen each path.</p>
+  </div>
+</header>
+
+<main>
+  <section class="legend">
+    <div class="wrap">
+      <span class="legend-label">DEGREE / FIELD OF STUDY</span>
+      <select class="degree-select" id="degree-select"></select>
+
+      <div style="margin-top:22px;">
+        <span class="legend-label">CERTIFICATIONS YOU HOLD OR ARE WORKING TOWARD (OPTIONAL)</span>
+        <div class="cert-row" id="cert-row"></div>
+        <label class="match-toggle" id="match-toggle-label" style="display:none;">
+          <input type="checkbox" id="match-toggle">
+          Only show careers that match my selected certifications
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section class="results">
+    <div class="wrap">
+      <div class="results-head">
+        <h2 id="results-title" style="font-size:18px;">Careers</h2>
+        <span class="results-count" id="results-count"></span>
+      </div>
+      <div id="entries"></div>
+    </div>
+  </section>
+
+  <section class="sources">
+    <div class="wrap">
+      <h2>Where this data comes from</h2>
+      <p>Salary and outlook figures here are general, directional ranges meant for early exploration — not exact or location-specific. For current numbers, check:</p>
+      <ul>
+        <li><a href="https://www.bls.gov/ooh/" target="_blank" rel="noopener">U.S. Bureau of Labor Statistics — Occupational Outlook Handbook</a></li>
+        <li><a href="https://www.onetonline.org/" target="_blank" rel="noopener">O*NET OnLine</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+  // ---------------------------------------------------------------
+  // DATA — edit these to add degrees, careers, or certifications.
+  // Salary/outlook figures are general estimates for orientation only.
+  // ---------------------------------------------------------------
+
+  const degrees = [
+    { id:"all", name:"All fields" },
+    { id:"cybersecurity", name:"Cybersecurity" },
+    { id:"computer-science", name:"Computer Science" },
+    { id:"it-support", name:"Information Technology / IT Support" },
+    { id:"networking", name:"Network Administration" },
+    { id:"data-analytics", name:"Data Analytics" },
+    { id:"health-science", name:"Health Science" },
+    { id:"business", name:"Business Administration" },
+    { id:"finance-accounting", name:"Finance / Accounting" },
+    { id:"criminal-justice", name:"Criminal Justice" },
+    { id:"education", name:"Education" },
+    { id:"skilled-trades", name:"Skilled Trades" },
+    { id:"creative-arts", name:"Creative Arts / Design" },
+    { id:"hospitality-tourism", name:"Hospitality & Tourism" },
+    { id:"engineering", name:"Engineering Technology" },
+    { id:"psychology-social-work", name:"Psychology / Social Work" },
+    { id:"undecided", name:"Undecided / still exploring" }
+  ];
+
+  const certifications = [
+    { id:"aplus", label:"CompTIA A+" },
+    { id:"netplus", label:"CompTIA Network+" },
+    { id:"secplus", label:"CompTIA Security+" },
+    { id:"ccna", label:"Cisco CCNA" },
+    { id:"az900", label:"Microsoft AZ-900" },
+    { id:"isc2cc", label:"ISC2 CC" },
+    { id:"pmp", label:"PMP" },
+    { id:"cpa", label:"CPA" },
+    { id:"cma", label:"Certified Medical Assistant" },
+    { id:"osha10", label:"OSHA 10/30" },
+    { id:"teaching-lic", label:"Teaching License" }
+  ];
+
+  const careers = [
+    { title:"Help Desk / IT Support Technician", degrees:["it-support","cybersecurity","computer-science","networking","undecided"], salaryLow:38, salaryHigh:52, outlook:"Growing", education:"AAS or relevant certs", certs:["aplus","az900"], desc:"First-line troubleshooting for hardware, software, and account issues. The most common entry point into IT — low barrier to entry, high demand." },
+    { title:"SOC Analyst (Tier 1)", degrees:["cybersecurity","computer-science","networking"], salaryLow:48, salaryHigh:68, outlook:"Growing", education:"AAS/BAS in Cybersecurity", certs:["secplus","isc2cc"], desc:"Monitors security alerts and logs, triages incidents, and escalates threats. Common first cybersecurity-specific role after help desk." },
+    { title:"Network Administrator", degrees:["networking","cybersecurity","computer-science","it-support"], salaryLow:55, salaryHigh:80, outlook:"Stable", education:"AAS/BAS + vendor certs", certs:["netplus","ccna"], desc:"Maintains routers, switches, and connectivity across an organization. CCNA is the standard credential employers look for." },
+    { title:"GRC / Compliance Analyst", degrees:["cybersecurity","business","health-science"], salaryLow:58, salaryHigh:85, outlook:"Growing", education:"Bachelor's preferred, AAS + experience possible", certs:["secplus"], desc:"Tracks regulatory requirements (HIPAA, NIST, ISO) and audits systems for compliance. Healthcare or clinical background is a real advantage here." },
+    { title:"Systems Administrator", degrees:["computer-science","it-support","networking"], salaryLow:60, salaryHigh:88, outlook:"Stable", education:"AAS/BAS", certs:["az900","netplus"], desc:"Keeps servers, storage, and internal infrastructure running. Often the next step up from help desk." },
+    { title:"Cloud Support Associate", degrees:["computer-science","it-support","cybersecurity"], salaryLow:52, salaryHigh:75, outlook:"High growth", education:"AAS + cloud cert", certs:["az900"], desc:"Supports customers or internal teams on cloud platforms (Azure, AWS). AZ-900 is a common starting credential." },
+    { title:"Database Administrator", degrees:["computer-science","data-analytics","it-support"], salaryLow:62, salaryHigh:92, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Maintains and secures database systems, manages backups, and tunes performance. SQL fluency is the core requirement." },
+    { title:"IT Auditor", degrees:["cybersecurity","business"], salaryLow:60, salaryHigh:90, outlook:"Growing", education:"Bachelor's preferred", certs:["secplus"], desc:"Reviews IT controls and processes against internal policy and external regulation. A common landing spot for a healthcare + security background." },
+    { title:"Penetration Tester", degrees:["cybersecurity","computer-science"], salaryLow:75, salaryHigh:115, outlook:"Growing", education:"Bachelor's + experience, or strong portfolio", certs:["secplus"], desc:"Simulates attacks to find vulnerabilities before real attackers do. Usually requires a few years in security first, not an entry role." },
+    { title:"Cybersecurity Manager", degrees:["cybersecurity","business"], salaryLow:95, salaryHigh:140, outlook:"Growing", education:"Bachelor's + 5+ years experience", certs:["secplus"], desc:"Leads a security team, owns risk decisions, and reports to leadership. A longer-term destination, not a first role." },
+
+    { title:"Software Developer", degrees:["computer-science"], salaryLow:65, salaryHigh:110, outlook:"Growing", education:"Bachelor's typical, bootcamp/AAS possible with portfolio", certs:[], desc:"Builds and maintains applications. Strong coding portfolio matters more than the degree itself for many employers." },
+    { title:"QA Analyst / Tester", degrees:["computer-science","it-support"], salaryLow:50, salaryHigh:72, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Tests software for bugs and usability issues before release. A common way into a dev-adjacent career without writing code full-time." },
+    { title:"Technical Writer", degrees:["computer-science","it-support","business"], salaryLow:55, salaryHigh:82, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Turns technical work into documentation people can actually use — manuals, runbooks, API docs. Undervalued, in-demand skill." },
+    { title:"Data Analyst", degrees:["data-analytics","business","computer-science"], salaryLow:55, salaryHigh:82, outlook:"Growing", education:"AAS/BAS", certs:[], desc:"Turns raw data into reports and dashboards that guide business decisions. SQL is the core skill employers screen for." },
+    { title:"Business Intelligence Analyst", degrees:["data-analytics","business"], salaryLow:62, salaryHigh:90, outlook:"Stable", education:"Bachelor's typical", certs:[], desc:"Builds reporting systems and data models for leadership decision-making. Heavier on SQL and visualization tools than raw stats." },
+
+    { title:"Health Information Technician", degrees:["health-science"], salaryLow:42, salaryHigh:58, outlook:"Growing", education:"AAS in Health Information Management", certs:[], desc:"Manages patient records and ensures HIPAA-compliant data handling — a natural bridge role between clinical work and IT." },
+    { title:"Clinical Research Coordinator", degrees:["health-science"], salaryLow:45, salaryHigh:62, outlook:"Stable", education:"AAS/BAS in Health Science", certs:[], desc:"Coordinates clinical trials and ensures data integrity and regulatory compliance for studies." },
+    { title:"Medical Assistant", degrees:["health-science"], salaryLow:35, salaryHigh:46, outlook:"Growing", education:"Certificate or AAS", certs:["cma"], desc:"Supports clinical and administrative tasks in outpatient care settings." },
+    { title:"Healthcare Compliance Officer", degrees:["health-science","business","cybersecurity"], salaryLow:68, salaryHigh:98, outlook:"Growing", education:"Bachelor's + clinical or IT background", certs:["secplus"], desc:"Owns HIPAA and regulatory compliance for a healthcare organization — a strong long-term fit for a CNA-to-security path." },
+    { title:"Medical Coder / Biller", degrees:["health-science"], salaryLow:40, salaryHigh:55, outlook:"Growing", education:"Certificate", certs:[], desc:"Translates clinical documentation into billing codes for insurance and reimbursement." },
+    { title:"Occupational Therapy Assistant", degrees:["health-science"], salaryLow:48, salaryHigh:65, outlook:"Growing", education:"AAS", certs:[], desc:"Assists patients with rehabilitation exercises and daily-living skills under a therapist's direction." },
+
+    { title:"IT Project Coordinator", degrees:["business","it-support","computer-science"], salaryLow:52, salaryHigh:75, outlook:"Stable", education:"AAS/BAS", certs:["pmp"], desc:"Tracks timelines, resources, and communication across technical projects. A common path from support roles into management." },
+    { title:"Operations Manager", degrees:["business"], salaryLow:58, salaryHigh:92, outlook:"Stable", education:"Bachelor's typical", certs:["pmp"], desc:"Oversees day-to-day operations, staffing, and process efficiency for a department or site." },
+    { title:"Human Resources Generalist", degrees:["business"], salaryLow:48, salaryHigh:70, outlook:"Stable", education:"Bachelor's typical", certs:[], desc:"Handles hiring, onboarding, benefits, and employee relations for an organization." },
+    { title:"Marketing Coordinator", degrees:["business","creative-arts"], salaryLow:42, salaryHigh:62, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Supports campaigns, social content, and brand materials — often the entry point into marketing." },
+
+    { title:"Bookkeeper", degrees:["finance-accounting"], salaryLow:38, salaryHigh:52, outlook:"Stable", education:"Certificate or AAS", certs:[], desc:"Maintains day-to-day financial records for small businesses or departments." },
+    { title:"Staff Accountant", degrees:["finance-accounting"], salaryLow:50, salaryHigh:68, outlook:"Stable", education:"Bachelor's typical", certs:["cpa"], desc:"Prepares financial statements, reconciles accounts, and supports audits." },
+    { title:"Financial Analyst", degrees:["finance-accounting","business"], salaryLow:58, salaryHigh:85, outlook:"Growing", education:"Bachelor's typical", certs:[], desc:"Builds models and forecasts to guide budgeting and investment decisions." },
+    { title:"Payroll Specialist", degrees:["finance-accounting","business"], salaryLow:42, salaryHigh:58, outlook:"Stable", education:"AAS or certificate", certs:[], desc:"Processes payroll, tax withholding, and compliance for an organization's workforce." },
+
+    { title:"Police Officer", degrees:["criminal-justice"], salaryLow:48, salaryHigh:72, outlook:"Stable", education:"Academy + HS diploma or AAS", certs:[], desc:"Patrols, responds to calls, and enforces laws within a jurisdiction." },
+    { title:"Probation Officer", degrees:["criminal-justice"], salaryLow:45, salaryHigh:65, outlook:"Stable", education:"Bachelor's typical", certs:[], desc:"Supervises individuals on probation and coordinates compliance with court conditions." },
+    { title:"Forensic Science Technician", degrees:["criminal-justice","health-science"], salaryLow:48, salaryHigh:68, outlook:"Growing", education:"Bachelor's typical", certs:[], desc:"Collects and analyzes physical evidence from crime scenes for investigations." },
+    { title:"Cybercrime Investigator", degrees:["criminal-justice","cybersecurity"], salaryLow:55, salaryHigh:85, outlook:"Growing", education:"AAS/BAS + certs", certs:["secplus"], desc:"Investigates digital crimes — fraud, hacking, exploitation — often within law enforcement or corporate security." },
+
+    { title:"Elementary School Teacher", degrees:["education"], salaryLow:44, salaryHigh:62, outlook:"Stable", education:"Bachelor's + teaching license", certs:["teaching-lic"], desc:"Plans and delivers instruction for a classroom of students, K-5." },
+    { title:"Instructional Aide / Paraeducator", degrees:["education"], salaryLow:30, salaryHigh:42, outlook:"Stable", education:"AAS or coursework", certs:[], desc:"Supports a lead teacher with classroom instruction and individual student needs." },
+    { title:"Corporate Trainer / L&D Specialist", degrees:["education","business"], salaryLow:50, salaryHigh:75, outlook:"Growing", education:"Bachelor's typical", certs:[], desc:"Designs and delivers training programs for employees inside a company." },
+
+    { title:"Electrician", degrees:["skilled-trades"], salaryLow:48, salaryHigh:78, outlook:"Growing", education:"Apprenticeship", certs:["osha10"], desc:"Installs and maintains electrical systems in homes, businesses, or industrial sites." },
+    { title:"HVAC Technician", degrees:["skilled-trades"], salaryLow:45, salaryHigh:70, outlook:"Growing", education:"Certificate + apprenticeship", certs:["osha10"], desc:"Installs and services heating, ventilation, and air conditioning systems." },
+    { title:"Plumber", degrees:["skilled-trades"], salaryLow:46, salaryHigh:75, outlook:"Stable", education:"Apprenticeship", certs:["osha10"], desc:"Installs and repairs piping and water systems in residential and commercial buildings." },
+    { title:"Industrial Maintenance Technician", degrees:["skilled-trades","engineering"], salaryLow:48, salaryHigh:72, outlook:"Stable", education:"AAS or certificate", certs:["osha10"], desc:"Maintains and repairs machinery and equipment in manufacturing or industrial settings." },
+
+    { title:"Graphic Designer", degrees:["creative-arts"], salaryLow:42, salaryHigh:65, outlook:"Stable", education:"AAS/BAS or strong portfolio", certs:[], desc:"Creates visual content for branding, print, and digital media." },
+    { title:"UX/UI Designer", degrees:["creative-arts","computer-science"], salaryLow:55, salaryHigh:90, outlook:"Growing", education:"AAS/BAS or strong portfolio", certs:[], desc:"Designs how digital products look and function from a user's perspective." },
+    { title:"Video Editor / Content Producer", degrees:["creative-arts"], salaryLow:40, salaryHigh:62, outlook:"Stable", education:"AAS/BAS or strong portfolio", certs:[], desc:"Edits and produces video content for marketing, media, or entertainment." },
+
+    { title:"Hotel Operations Manager", degrees:["hospitality-tourism","business"], salaryLow:45, salaryHigh:68, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Oversees daily operations, staffing, and guest experience for a hotel or resort." },
+    { title:"Event Coordinator", degrees:["hospitality-tourism","business"], salaryLow:38, salaryHigh:58, outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Plans and executes weddings, conferences, or corporate events from start to finish." },
+    { title:"Restaurant / Food Service Manager", degrees:["hospitality-tourism","business"], salaryLow:42, salaryHigh:60, outlook:"Stable", education:"AAS or experience", certs:[], desc:"Manages staff, budgets, and daily operations for a restaurant or food service location." },
+
+    { title:"Civil Engineering Technician", degrees:["engineering"], salaryLow:45, salaryHigh:65, outlook:"Stable", education:"AAS", certs:[], desc:"Supports engineers with drafting, surveying, and materials testing for construction projects." },
+    { title:"Mechanical Drafter / CAD Technician", degrees:["engineering"], salaryLow:45, salaryHigh:65, outlook:"Stable", education:"AAS", certs:[], desc:"Produces technical drawings and specs for mechanical parts and systems." },
+
+    { title:"Social Worker (BSW)", degrees:["psychology-social-work","health-science"], salaryLow:45, salaryHigh:65, outlook:"Growing", education:"Bachelor's + license", certs:[], desc:"Connects individuals and families with resources and support services." },
+    { title:"Substance Abuse Counselor", degrees:["psychology-social-work","health-science"], salaryLow:42, salaryHigh:60, outlook:"Growing", education:"Bachelor's + certification", certs:[], desc:"Provides counseling and treatment planning for individuals recovering from addiction." }
+  ];
+
+  const SALARY_FLOOR = 30, SALARY_CEIL = 145; // used only to scale the salary bar visual
+
+  // ---------------------------------------------------------------
+
+  const degreeSelect = document.getElementById('degree-select');
+  const certRow = document.getElementById('cert-row');
+  const entriesEl = document.getElementById('entries');
+  const resultsCount = document.getElementById('results-count');
+  const resultsTitle = document.getElementById('results-title');
+
+  degrees.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    degreeSelect.appendChild(opt);
+  });
+
+  const selectedCerts = new Set();
+  const matchToggle = document.getElementById('match-toggle');
+  const matchToggleLabel = document.getElementById('match-toggle-label');
+
+  certifications.forEach(c => {
+    const chip = document.createElement('label');
+    chip.className = 'cert-chip';
+    chip.innerHTML = `<input type="checkbox" value="${c.id}"> ${c.label}`;
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (selectedCerts.has(c.id)) { selectedCerts.delete(c.id); chip.classList.remove('active'); }
+      else { selectedCerts.add(c.id); chip.classList.add('active'); }
+      matchToggleLabel.style.display = selectedCerts.size > 0 ? 'flex' : 'none';
+      if (selectedCerts.size === 0) matchToggle.checked = false;
+      render();
+    });
+    certRow.appendChild(chip);
+  });
+
+  matchToggle.addEventListener('change', render);
+
+  function render(){
+    const degreeId = degreeSelect.value;
+    let list = careers.filter(c => degreeId === 'all' || c.degrees.includes(degreeId));
+
+    // If the person has selected certs, matching careers get flagged.
+    // A career "matches" if it lists ANY of the selected certs — so a single
+    // cert, or a combination, can surface the same job from different angles.
+    const withMatch = list.map(c => ({ ...c, matched: c.certs.filter(id => selectedCerts.has(id)) }));
+
+    const narrowToMatches = matchToggle.checked && selectedCerts.size > 0;
+    let filtered = narrowToMatches ? withMatch.filter(c => c.matched.length > 0) : withMatch;
+
+    // Careers matching selected certs float to the top either way.
+    filtered = filtered.slice().sort((a,b) => (b.matched.length > 0 ? 1 : 0) - (a.matched.length > 0 ? 1 : 0));
+
+    resultsTitle.textContent = degreeId === 'all' ? 'All careers' : degrees.find(d=>d.id===degreeId).name;
+    resultsCount.textContent = filtered.length + (filtered.length === 1 ? ' path' : ' paths');
+
+    entriesEl.innerHTML = '';
+    if (filtered.length === 0){
+      entriesEl.innerHTML = narrowToMatches
+        ? `<div class="empty-state">No careers in this field match those certifications yet. Try unchecking "Only show matches," or add a career to the <code>careers</code> array that lists this combination.</div>`
+        : `<div class="empty-state">No paths mapped for this field yet — add one to the <code>careers</code> array.</div>`;
+      return;
+    }
+
+    filtered.forEach((c, i) => {
+      const certLabels = c.certs.map(id => certifications.find(x=>x.id===id)?.label).filter(Boolean).join(', ');
+      const salaryLabel = `$${c.salaryLow}K – $${c.salaryHigh}K`;
+      const barLeft = Math.max(0, Math.min(100, ((c.salaryLow - SALARY_FLOOR) / (SALARY_CEIL - SALARY_FLOOR)) * 100));
+      const barWidth = Math.max(4, Math.min(100 - barLeft, ((c.salaryHigh - c.salaryLow) / (SALARY_CEIL - SALARY_FLOOR)) * 100));
+      const el = document.createElement('div');
+      el.className = 'entry';
+      el.innerHTML = `
+        <span class="num">${String(i+1).padStart(2,'0')}</span>
+        <div>
+          <h3>${c.title}${c.matched.length ? '<span class="badge-match">matches your certs</span>' : ''}</h3>
+          <div class="stats">
+            <span>${salaryLabel}</span>
+            <span class="salary-bar"><span style="left:${barLeft}%; width:${barWidth}%;"></span></span>
+            <span class="outlook">${c.outlook}</span>
+          </div>
+          <p class="desc">${c.desc}</p>
+          <div class="meta"><b>Typical education:</b> ${c.education}${certLabels ? ` &nbsp;·&nbsp; <b>Helpful certs:</b> ${certLabels}` : ''}</div>
+        </div>`;
+      entriesEl.appendChild(el);
+    });
+  }
+
+  degreeSelect.addEventListener('change', render);
+  render();
+</script>
+
+</body>
+</html>
