@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Atlas</title>
+<meta name="description" content="Career Atlas — find career paths connected to your degree, certifications, and skills.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #eef1f3;
+    --paper: #e4e9ec;
+    --ink: #16233b;
+    --ink-soft: #3c4a5e;
+    --muted: #6b7a8c;
+    --blue: #1e4d8c;
+    --blue-deep: #10315e;
+    --gold: #a9762c;
+    --line: #ccd4da;
+    --white: #ffffff;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
+  }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Spectral', Georgia, serif; font-weight:500; margin:0; color:var(--ink); }
+  a{ color:var(--blue); }
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible{
+    outline:2px solid var(--blue); outline-offset:2px; border-radius:2px;
+  }
+  .wrap{ max-width:900px; margin:0 auto; padding:0 26px; }
+
+  /* ---------- Header ---------- */
+  header{ border-bottom:1px solid var(--line); background:var(--paper); }
+  .header-inner{ padding:38px 0 30px; }
+  .mark{ display:flex; align-items:baseline; gap:10px; }
+  .mark .glyph{ font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--gold); letter-spacing:0.02em; }
+  header h1{ font-size:30px; }
+  header p.tag{ color:var(--ink-soft); margin-top:8px; max-width:52ch; font-size:15.5px; }
+
+  /* ---------- Legend / controls ---------- */
+  .legend{ padding:34px 0 30px; border-bottom:1px solid var(--line); }
+  .legend-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted);
+    display:block; margin-bottom:8px;
+  }
+  .degree-select{
+    width:100%; max-width:440px;
+    font-family:'IBM Plex Sans', sans-serif; font-size:16px; color:var(--ink);
+    padding:11px 14px; background:var(--white); border:1px solid var(--line);
+    border-radius:2px; appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%), linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 14px) center;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat:no-repeat;
+  }
+  .cert-row{ display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+  .cert-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--ink-soft);
+    border:1px solid var(--line); background:var(--white);
+    padding:6px 12px; cursor:pointer; user-select:none; border-radius:2px;
+  }
+  .cert-chip input{ position:absolute; opacity:0; pointer-events:none; }
+  .cert-chip.active{ background:var(--blue); border-color:var(--blue); color:var(--white); }
+
+  /* ---------- Results / Gazetteer ---------- */
+  .results{ padding:36px 0 70px; }
+  .results-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px; flex-wrap:wrap; gap:8px; }
+  .results-count{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--muted); }
+
+  .entry{ border-top:1px solid var(--line); padding:22px 0; display:grid; grid-template-columns:44px 1fr; gap:0 18px; }
+  .entry:last-child{ border-bottom:1px solid var(--line); }
+  .entry .num{ font-family:'IBM Plex Mono', monospace; color:var(--gold); font-size:13px; padding-top:4px; }
+  .entry h3{ font-size:19px; }
+  .entry .stats{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--blue);
+    margin-top:6px; display:flex; flex-wrap:wrap; gap:4px 14px;
+  }
+  .entry .stats span.outlook{ color:var(--gold); }
+  .entry p.desc{ color:var(--ink-soft); margin:10px 0 0; font-size:14.5px; max-width:64ch; }
+  .entry .meta{ margin-top:10px; font-size:13px; color:var(--muted); }
+  .entry .meta b{ color:var(--ink-soft); font-weight:600; }
+  .badge-match{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color:var(--blue); border:1px solid var(--blue); padding:1px 7px; border-radius:2px; margin-left:8px;
+  }
+
+  .empty-state{
+    padding:50px 0; color:var(--muted); text-align:center; font-size:15px;
+  }
+
+  /* ---------- Sources / footer ---------- */
+  .sources{ border-top:1px solid var(--line); padding:30px 0 50px; background:var(--paper); }
+  .sources h2{ font-size:16px; font-family:'IBM Plex Sans',sans-serif; font-weight:600; margin-bottom:10px; }
+  .sources p{ color:var(--ink-soft); font-size:14px; max-width:64ch; margin:0 0 10px; }
+  .sources ul{ margin:0; padding-left:18px; font-size:14px; color:var(--ink-soft); }
+  .sources li{ margin-bottom:4px; }
+
+  @media (max-width:600px){
+    .entry{ grid-template-columns:1fr; }
+    .entry .num{ padding-top:0; margin-bottom:4px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <div class="mark"><span class="glyph">— an exploration tool —</span></div>
+    <h1>Career Atlas</h1>
+    <p class="tag">Pick a degree — current or intended — and see where it can take you: real career titles, general salary ranges, job outlook, and the certifications that strengthen each path.</p>
+  </div>
+</header>
+
+<main>
+  <section class="legend">
+    <div class="wrap">
+      <span class="legend-label">DEGREE / FIELD OF STUDY</span>
+      <select class="degree-select" id="degree-select"></select>
+
+      <div style="margin-top:22px;">
+        <span class="legend-label">CERTIFICATIONS YOU HOLD OR ARE WORKING TOWARD (OPTIONAL)</span>
+        <div class="cert-row" id="cert-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="results">
+    <div class="wrap">
+      <div class="results-head">
+        <h2 id="results-title" style="font-size:18px;">Careers</h2>
+        <span class="results-count" id="results-count"></span>
+      </div>
+      <div id="entries"></div>
+    </div>
+  </section>
+
+  <section class="sources">
+    <div class="wrap">
+      <h2>Where this data comes from</h2>
+      <p>Salary and outlook figures here are general, directional ranges meant for early exploration — not exact or location-specific. For current numbers, check:</p>
+      <ul>
+        <li><a href="https://www.bls.gov/ooh/" target="_blank" rel="noopener">U.S. Bureau of Labor Statistics — Occupational Outlook Handbook</a></li>
+        <li><a href="https://www.onetonline.org/" target="_blank" rel="noopener">O*NET OnLine</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+  // ---------------------------------------------------------------
+  // DATA — edit these to add degrees, careers, or certifications.
+  // Salary/outlook figures are general estimates for orientation only.
+  // ---------------------------------------------------------------
+
+  const degrees = [
+    { id:"all", name:"All fields" },
+    { id:"cybersecurity", name:"Cybersecurity" },
+    { id:"computer-science", name:"Computer Science" },
+    { id:"it-support", name:"Information Technology / IT Support" },
+    { id:"networking", name:"Network Administration" },
+    { id:"data-analytics", name:"Data Analytics" },
+    { id:"health-science", name:"Health Science" },
+    { id:"business", name:"Business Administration" },
+    { id:"undecided", name:"Undecided / still exploring" }
+  ];
+
+  const certifications = [
+    { id:"aplus", label:"CompTIA A+" },
+    { id:"netplus", label:"CompTIA Network+" },
+    { id:"secplus", label:"CompTIA Security+" },
+    { id:"ccna", label:"Cisco CCNA" },
+    { id:"az900", label:"Microsoft AZ-900" },
+    { id:"isc2cc", label:"ISC2 CC" }
+  ];
+
+  const careers = [
+    { title:"Help Desk / IT Support Technician", degrees:["it-support","cybersecurity","computer-science","networking","undecided"], salary:"$38K – $52K", outlook:"Growing", education:"AAS or relevant certs", certs:["aplus","az900"], desc:"First-line troubleshooting for hardware, software, and account issues. The most common entry point into IT — low barrier to entry, high demand." },
+    { title:"SOC Analyst (Tier 1)", degrees:["cybersecurity","computer-science","networking"], salary:"$48K – $68K", outlook:"Growing", education:"AAS/BAS in Cybersecurity", certs:["secplus","isc2cc"], desc:"Monitors security alerts and logs, triages incidents, and escalates threats. Common first cybersecurity-specific role after help desk." },
+    { title:"Network Administrator", degrees:["networking","cybersecurity","computer-science","it-support"], salary:"$55K – $80K", outlook:"Stable", education:"AAS/BAS + vendor certs", certs:["netplus","ccna"], desc:"Maintains routers, switches, and connectivity across an organization. CCNA is the standard credential employers look for." },
+    { title:"GRC / Compliance Analyst", degrees:["cybersecurity","business","health-science"], salary:"$58K – $85K", outlook:"Growing", education:"Bachelor's preferred, AAS + experience possible", certs:["secplus"], desc:"Tracks regulatory requirements (HIPAA, NIST, ISO) and audits systems for compliance. Healthcare or clinical background is a real advantage here." },
+    { title:"Systems Administrator", degrees:["computer-science","it-support","networking"], salary:"$60K – $88K", outlook:"Stable", education:"AAS/BAS", certs:["az900","netplus"], desc:"Keeps servers, storage, and internal infrastructure running. Often the next step up from help desk." },
+    { title:"Cloud Support Associate", degrees:["computer-science","it-support","cybersecurity"], salary:"$52K – $75K", outlook:"High growth", education:"AAS + cloud cert", certs:["az900"], desc:"Supports customers or internal teams on cloud platforms (Azure, AWS). AZ-900 is a common starting credential." },
+    { title:"Penetration Tester", degrees:["cybersecurity","computer-science"], salary:"$75K – $115K", outlook:"Growing", education:"Bachelor's + experience, or strong portfolio", certs:["secplus"], desc:"Simulates attacks to find vulnerabilities before real attackers do. Usually requires a few years in security first, not an entry role." },
+    { title:"Software Developer", degrees:["computer-science"], salary:"$65K – $110K", outlook:"Growing", education:"Bachelor's typical, bootcamp/AAS possible with portfolio", certs:[], desc:"Builds and maintains applications. Strong coding portfolio matters more than the degree itself for many employers." },
+    { title:"QA Analyst / Tester", degrees:["computer-science","it-support"], salary:"$50K – $72K", outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Tests software for bugs and usability issues before release. A common way into a dev-adjacent career without writing code full-time." },
+    { title:"Data Analyst", degrees:["data-analytics","business","computer-science"], salary:"$55K – $82K", outlook:"Growing", education:"AAS/BAS", certs:[], desc:"Turns raw data into reports and dashboards that guide business decisions. SQL is the core skill employers screen for." },
+    { title:"Business Intelligence Analyst", degrees:["data-analytics","business"], salary:"$62K – $90K", outlook:"Stable", education:"Bachelor's typical", certs:[], desc:"Builds reporting systems and data models for leadership decision-making. Heavier on SQL and visualization tools than raw stats." },
+    { title:"Health Information Technician", degrees:["health-science"], salary:"$42K – $58K", outlook:"Growing", education:"AAS in Health Information Management", certs:[], desc:"Manages patient records and ensures HIPAA-compliant data handling — a natural bridge role between clinical work and IT." },
+    { title:"Clinical Research Coordinator", degrees:["health-science"], salary:"$45K – $62K", outlook:"Stable", education:"AAS/BAS in Health Science", certs:[], desc:"Coordinates clinical trials and ensures data integrity and regulatory compliance for studies." },
+    { title:"Medical Assistant", degrees:["health-science"], salary:"$35K – $46K", outlook:"Growing", education:"Certificate or AAS", certs:[], desc:"Supports clinical and administrative tasks in outpatient care settings." },
+    { title:"IT Project Coordinator", degrees:["business","it-support","computer-science"], salary:"$52K – $75K", outlook:"Stable", education:"AAS/BAS", certs:[], desc:"Tracks timelines, resources, and communication across technical projects. A common path from support roles into management." },
+    { title:"Cybersecurity Compliance Auditor", degrees:["cybersecurity","business","health-science"], salary:"$65K – $95K", outlook:"Growing", education:"Bachelor's + certs preferred", certs:["secplus"], desc:"Evaluates whether an organization's security controls meet regulatory standards. GRC-adjacent, often healthcare or finance focused." }
+  ];
+
+  // ---------------------------------------------------------------
+
+  const degreeSelect = document.getElementById('degree-select');
+  const certRow = document.getElementById('cert-row');
+  const entriesEl = document.getElementById('entries');
+  const resultsCount = document.getElementById('results-count');
+  const resultsTitle = document.getElementById('results-title');
+
+  degrees.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    degreeSelect.appendChild(opt);
+  });
+
+  const selectedCerts = new Set();
+
+  certifications.forEach(c => {
+    const chip = document.createElement('label');
+    chip.className = 'cert-chip';
+    chip.innerHTML = `<input type="checkbox" value="${c.id}"> ${c.label}`;
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (selectedCerts.has(c.id)) { selectedCerts.delete(c.id); chip.classList.remove('active'); }
+      else { selectedCerts.add(c.id); chip.classList.add('active'); }
+      render();
+    });
+    certRow.appendChild(chip);
+  });
+
+  function render(){
+    const degreeId = degreeSelect.value;
+    let list = careers.filter(c => degreeId === 'all' || c.degrees.includes(degreeId));
+
+    // Careers matching selected certs float to the top.
+    list = list.slice().sort((a,b) => {
+      const aMatch = a.certs.some(c => selectedCerts.has(c)) ? 1 : 0;
+      const bMatch = b.certs.some(c => selectedCerts.has(c)) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+
+    resultsTitle.textContent = degreeId === 'all' ? 'All careers' : degrees.find(d=>d.id===degreeId).name;
+    resultsCount.textContent = list.length + (list.length === 1 ? ' path' : ' paths');
+
+    entriesEl.innerHTML = '';
+    if (list.length === 0){
+      entriesEl.innerHTML = `<div class="empty-state">No paths mapped for this field yet — add one to the <code>careers</code> array.</div>`;
+      return;
+    }
+
+    list.forEach((c, i) => {
+      const matched = c.certs.filter(id => selectedCerts.has(id));
+      const certLabels = c.certs.map(id => certifications.find(x=>x.id===id)?.label).filter(Boolean).join(', ');
+      const el = document.createElement('div');
+      el.className = 'entry';
+      el.innerHTML = `
+        <span class="num">${String(i+1).padStart(2,'0')}</span>
+        <div>
+          <h3>${c.title}${matched.length ? '<span class="badge-match">matches your certs</span>' : ''}</h3>
+          <div class="stats"><span>${c.salary}</span><span class="outlook">${c.outlook}</span></div>
+          <p class="desc">${c.desc}</p>
+          <div class="meta"><b>Typical education:</b> ${c.education}${certLabels ? ` &nbsp;·&nbsp; <b>Helpful certs:</b> ${certLabels}` : ''}</div>
+        </div>`;
+      entriesEl.appendChild(el);
+    });
+  }
+
+  degreeSelect.addEventListener('change', render);
+  render();
+</script>
+
+</body>
+</html>
